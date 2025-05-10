@@ -1,9 +1,28 @@
 <template>
-  <div class="home">
+  <div class="home bookmarks-container">
     <h1>Video Library</h1>
     <div class="import-section">
-      <input type="file" accept=".csv" @change="handleFileUpload" />
-      <button @click="importCSV" :disabled="!selectedFile">Import CSV</button>
+      <div class="import-options">
+        <div class="import-option">
+          <label class="file-label">
+            <span>Import CSV</span>
+            <input type="file" accept=".csv" @change="handleFileUpload" />
+          </label>
+          <button @click="importCSV" :disabled="!selectedFile || selectedFile.name.endsWith('.html')">
+            <i class="pi pi-file-excel"></i> Import CSV
+          </button>
+        </div>
+        
+        <div class="import-option">
+          <label class="file-label">
+            <span>Import HTML Bookmarks</span>
+            <input type="file" accept=".html" @change="handleFileUpload" />
+          </label>
+          <button @click="importHTML" :disabled="!selectedFile || !selectedFile.name.endsWith('.html')">
+            <i class="pi pi-bookmark"></i> Import HTML
+          </button>
+        </div>
+      </div>
     </div>
 
     <div v-if="playlists.length" class="content-section">
@@ -86,9 +105,11 @@
 
 <script>
 import Papa from 'papaparse';
+import 'primeicons/primeicons.css';
 
 export default {
-  name: 'Home',  data() {
+  name: 'Home',
+  data() {
     return {
       selectedFile: null,
       playlists: [],
@@ -98,6 +119,7 @@ export default {
       showVideoModal: false,
       selectedVideo: null,
       embedError: false,
+      htmlContent: null,
     };
   },
   computed: {
@@ -155,6 +177,8 @@ export default {
   methods: {
     handleFileUpload(event) {
       this.selectedFile = event.target.files[0];
+      // Reset HTML content when a new file is selected
+      this.htmlContent = null;
     },    toggleTag(tag) {
       const index = this.selectedTags.indexOf(tag);
       if (index === -1) {
@@ -264,6 +288,105 @@ export default {
         }
       });
     },
+
+    async importHTML() {
+      if (!this.selectedFile || !this.selectedFile.name.endsWith('.html')) return;
+
+      try {
+        const text = await this.selectedFile.text();
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(text, 'text/html');
+        
+        // Process all DL elements (collections)
+        const collections = this.processCollections(doc.querySelector('DL'));
+        
+        // Convert collections to playlists
+        this.playlists = collections.map(collection => ({
+          id: collection.id || 'imported',
+          name: collection.title || 'Imported Bookmarks',
+          description: collection.description || '',
+          videos: collection.bookmarks.map((bookmark, index) => ({
+            id: String(Date.now() + index),
+            title: bookmark.title,
+            url: bookmark.url,
+            cover: bookmark.cover || '',
+            note: bookmark.description || '',
+            tags: bookmark.tags || '',
+            created: bookmark.addDate ? new Date(bookmark.addDate * 1000).toISOString() : '',
+            important: bookmark.important || false
+          }))
+        }));
+
+        // Extract tags from the videos
+        if (this.playlists.length > 0) {
+          this.extractTags(this.playlists[0].videos);
+        }
+
+        // Store in localStorage
+        localStorage.setItem('playlists', JSON.stringify(this.playlists));
+
+      } catch (error) {
+        console.error('Error parsing HTML:', error);
+        alert('Error parsing HTML file');
+      }
+    },
+
+    processCollections(dl, level = 0) {
+      if (!dl) return [];
+
+      const collections = [];
+      let currentCollection = {
+        id: Date.now().toString(),
+        title: '',
+        bookmarks: [],
+        subCollections: []
+      };
+
+      for (const child of dl.children) {
+        if (child.tagName === 'DT') {
+          const h3 = child.querySelector('H3');
+          if (h3) {
+            // Start a new collection
+            if (currentCollection.bookmarks.length > 0 || currentCollection.title) {
+              collections.push(currentCollection);
+            }
+            currentCollection = {
+              id: Date.now().toString() + Math.random(),
+              title: h3.textContent,
+              bookmarks: [],
+              subCollections: []
+            };
+          } else {
+            const a = child.querySelector('A');
+            if (a) {
+              // Add bookmark to current collection
+              currentCollection.bookmarks.push({
+                title: a.textContent,
+                url: a.getAttribute('HREF'),
+                addDate: parseInt(a.getAttribute('ADD_DATE')),
+                lastModified: parseInt(a.getAttribute('LAST_MODIFIED')),
+                tags: a.getAttribute('TAGS'),
+                cover: a.getAttribute('DATA-COVER'),
+                important: a.getAttribute('DATA-IMPORTANT') === 'true',
+                description: child.querySelector('DD blockquote')?.textContent
+              });
+            }
+          }
+        } else if (child.tagName === 'DL') {
+          // Process nested collection
+          const subCollections = this.processCollections(child, level + 1);
+          currentCollection.subCollections.push(...subCollections);
+        }
+      }
+
+      // Add the last collection if it has content
+      if (currentCollection.bookmarks.length > 0 || currentCollection.title) {
+        collections.push(currentCollection);
+      }
+
+      return collections;
+    },
+
     handleImageError(event) {
       event.target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1zbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgZmlsbD0iI2YwZjBmMCIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMjAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGFsaWdubWVudC1iYXNlbGluZT0ibWlkZGxlIiBmaWxsPSIjOTk5Ij5ObyBJbWFnZTwvdGV4dD48L3N2Zz4=';
     }
@@ -278,7 +401,9 @@ export default {
 };
 </script>
 
-<style scoped>
+<style lang="scss">
+@use '../assets/styles/cyberpunk.scss' as *;
+
 .home {
   max-width: 1200px;
   margin: 0 auto;
@@ -288,8 +413,63 @@ export default {
 .import-section {
   margin: 20px 0;
   padding: 20px;
-  background: #f5f5f5;
+  background: var(--card-bg);
   border-radius: 8px;
+  @include cyber-border;
+
+  .import-options {
+    display: flex;
+    gap: 2rem;
+    flex-wrap: wrap;
+  }
+
+  .import-option {
+    flex: 1;
+    min-width: 250px;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .file-label {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    
+    span {
+      color: var(--primary-color);
+      font-size: 0.9rem;
+    }
+    
+    input[type="file"] {
+      display: none;
+    }
+  }
+
+  button {
+    background: var(--secondary-color);
+    color: var(--primary-color);
+    border: none;
+    padding: 0.75rem 1rem;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    @include cyber-border;
+    
+    &:hover:not(:disabled) {
+      background: var(--hover-color);
+      @include neon-glow(#00ff9f);
+    }
+    
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    i {
+      margin-right: 0.5rem;
+    }
+  }
 }
 
 .playlists {
@@ -362,15 +542,17 @@ a:hover {
 }
 
 .video-card {
-  background: white;
+  @include cyber-border;
+  background: var(--card-bg);
   border-radius: 8px;
   overflow: hidden;
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
   transition: transform 0.2s;
-}
-
-.video-card:hover {
-  transform: translateY(-2px);
+  
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 0 20px rgba(0, 255, 159, 0.2);
+  }
 }
 
 .video-cover {
@@ -390,12 +572,16 @@ a:hover {
 }
 
 .video-title {
+  color: var(--primary-color);
   font-size: 16px;
   font-weight: bold;
-  color: #333;
   text-decoration: none;
   display: block;
   margin-bottom: 8px;
+  
+  &:hover {
+    @include neon-glow(#00ff9f);
+  }
 }
 
 .video-meta {
@@ -441,25 +627,15 @@ a:hover {
 }
 
 .tag {
-  background: #e0e0e0;
-  color: #333;
-  padding: 5px 10px;
-  border-radius: 16px;
-  margin-right: 10px;
-  margin-bottom: 10px;
-  cursor: pointer;
-  transition: background 0.3s;
-}
-
-.tag.active {
-  background: #2196F3;
-  color: white;
-}
-
-.tag.disabled {
-  background: #f0f0f0;
-  color: #999;
-  cursor: default;
+  background: var(--secondary-color);
+  color: var(--primary-color);
+  @include cyber-border;
+  
+  &.active {
+    background: var(--accent-color);
+    color: var(--text-color);
+    @include neon-glow(#ff003c);
+  }
 }
 
 .video-modal {

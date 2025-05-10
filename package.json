@@ -6,8 +6,11 @@
     "build": "vite build"
   },
   "dependencies": {
+    "@vueuse/core": "^13.1.0",
     "axios": "^1.4.0",
     "papaparse": "^5.4.1",
+    "primeicons": "^7.0.0",
+    "primevue": "^4.3.4",
     "vue": "^3.0.4",
     "vue-router": "^4.5.1",
     "vue-video-player": "^6.0.0"
@@ -15,6 +18,7 @@
   "devDependencies": {
     "@vitejs/plugin-vue": "^5.2.4",
     "@vue/compiler-sfc": "^3.0.4",
+    "sass": "^1.87.0",
     "vite": "^6.3.5"
   }
 }

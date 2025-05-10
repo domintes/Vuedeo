@@ -1,0 +1,152 @@
+@use "sass:math";
+@use "sass:color";
+
+// Cyberpunk theme variables
+:root {
+  --primary-color: #00ff9f;
+  --secondary-color: #0d1b2a;
+  --accent-color: #ff003c;
+  --text-color: #e0e1dd;
+  --bg-color: #0a192f;
+  --card-bg: #1b2a4a;
+  --hover-color: #2a446a;
+  --border-color: #30567a;
+}
+
+// Cyberpunk Mixins
+@mixin neon-glow($color) {
+  text-shadow: 0 0 5px rgba($color, 0.7),
+               0 0 10px rgba($color, 0.5),
+               0 0 15px rgba($color, 0.3);
+}
+
+@mixin cyber-border {
+  border: 1px solid var(--border-color);
+  box-shadow: 0 0 10px rgba(0, 255, 159, 0.1);
+}
+
+// Fonts
+@font-face {
+  font-family: 'CyberFont';
+  src: local('SF Mono'), local('Monaco'), local('Consolas'), local('monospace');
+}
+
+// Global styles
+body {
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  font-family: 'CyberFont', monospace;
+}
+
+// Bookmarks container styles
+.bookmarks-container {
+  padding: 2rem;
+
+  h1 {
+    color: var(--primary-color);
+    @include neon-glow(#00ff9f);
+    margin-bottom: 2rem;
+  }
+}
+
+// Collection styles
+.collection {
+  @include cyber-border;
+  background: var(--card-bg);
+  border-radius: 4px;
+  margin-bottom: 1rem;
+  
+  .collection-header {
+    padding: 1rem;
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    transition: background 0.3s ease;
+    
+    &:hover {
+      background: var(--hover-color);
+    }
+
+    i {
+      margin-right: 0.5rem;
+      color: var(--primary-color);
+    }
+
+    h3 {
+      margin: 0;
+      color: var(--primary-color);
+    }
+  }
+
+  .collection-content {
+    padding: 1rem;
+    border-top: 1px solid var(--border-color);
+  }
+}
+
+// Bookmark item styles
+.bookmark-item {
+  display: flex;
+  align-items: center;
+  padding: 0.75rem;
+  margin-bottom: 0.5rem;
+  background: rgba(27, 42, 74, 0.5);
+  border-radius: 4px;
+  transition: transform 0.2s ease;
+
+  &:hover {
+    transform: translateX(5px);
+    background: var(--hover-color);
+  }
+
+  .bookmark-cover {
+    width: 60px;
+    height: 60px;
+    margin-right: 1rem;
+    border-radius: 4px;
+    overflow: hidden;
+    @include cyber-border;
+
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+  }
+
+  .bookmark-info {
+    flex: 1;
+
+    .bookmark-title {
+      color: var(--text-color);
+      text-decoration: none;
+      font-weight: bold;
+      display: block;
+      margin-bottom: 0.25rem;
+
+      &:hover {
+        color: var(--primary-color);
+        @include neon-glow(#00ff9f);
+      }
+    }
+
+    .bookmark-meta {
+      font-size: 0.85rem;
+      color: rgba(224, 225, 221, 0.7);
+    }
+
+    .bookmark-tags {
+      margin-top: 0.5rem;
+      
+      span {
+        background: var(--secondary-color);
+        color: var(--primary-color);
+        padding: 0.2rem 0.5rem;
+        border-radius: 2px;
+        font-size: 0.8rem;
+        margin-right: 0.5rem;
+        @include cyber-border;
+      }
+    }
+  }
+}
