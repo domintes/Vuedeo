@@ -62,10 +62,15 @@
         <button class="close-button" @click="closeVideoModal">&times;</button>
         <div class="video-player">
           <iframe
+            v-if="!embedError"
             :src="selectedVideo?.url"
             frameborder="0"
             allowfullscreen
           ></iframe>
+          <div v-else class="embed-error">
+            <p>Unable to play this video.</p>
+            <button @click="openInNewTab(selectedVideo.url)">Watch on original site</button>
+          </div>
         </div>
         <div class="video-details">
           <h2>{{ selectedVideo?.title }}</h2>
@@ -92,6 +97,7 @@ export default {
       allTags: new Set(),
       showVideoModal: false,
       selectedVideo: null,
+      embedError: false,
     };
   },
   computed: {
@@ -165,11 +171,48 @@ export default {
     openVideoModal(video) {
       this.selectedVideo = video;
       this.showVideoModal = true;
+      
+      // Check if the video can be embedded
+      this.checkEmbedPermission(video.url);
     },
 
     closeVideoModal() {
       this.showVideoModal = false;
       this.selectedVideo = null;
+      this.embedError = false;
+    },
+
+    checkEmbedPermission(url) {
+      const iframe = document.createElement('iframe');
+      iframe.style.display = 'none';
+      iframe.src = url;
+
+      // Listen for load errors
+      iframe.onerror = () => {
+        this.embedError = true;
+      };
+
+      // Add a timeout to detect X-Frame-Options blocks
+      setTimeout(() => {
+        try {
+          // Try to access iframe content
+          const iframeContent = iframe.contentWindow;
+          if (!iframeContent) {
+            this.embedError = true;
+          }
+        } catch (e) {
+          // If we can't access the content, it's blocked
+          this.embedError = true;
+        }
+        document.body.removeChild(iframe);
+      }, 1000);
+
+      document.body.appendChild(iframe);
+    },
+
+    openInNewTab(url) {
+      window.open(url, '_blank');
+      this.closeVideoModal();
     },
 
     extractTags(videos) {
@@ -453,7 +496,7 @@ a:hover {
 
 .video-player {
   overflow: hidden;
-  padding-top: 56.25%; /* 16:9 Aspect Ratio */
+  padding-top: 56.25% /* 16:9 Aspect Ratio */;
   position: relative;
   height: 0;
 }
@@ -485,5 +528,33 @@ a:hover {
 .modal-tags {
   font-size: 14px;
   color: #2196F3;
+}
+
+.embed-error {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  color: #666;
+}
+
+.embed-error p {
+  margin-bottom: 15px;
+  font-size: 16px;
+}
+
+.embed-error button {
+  background: #2196F3;
+  color: white;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+
+.embed-error button:hover {
+  background: #1976D2;
 }
 </style>
