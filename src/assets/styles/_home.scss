@@ -1,0 +1,438 @@
+@use './_cyberpunk.scss' as *;
+
+// Import section styles
+.import-section {
+  margin: 20px 0;
+  padding: 20px;
+  background: var(--card-bg);
+  border-radius: 8px;
+  @include cyber-border;
+
+  .import-options {
+    display: flex;
+    justify-content: center;
+    padding: 1rem;
+  }
+
+  .unified-import {
+    display: flex;
+    flex-direction: column;
+    max-width: 600px;
+    width: 100%;
+
+    .import-controls {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 1rem;
+      align-items: center;
+      margin-bottom: 0.5rem;
+    }
+
+    .input-info {
+      color: rgba(255, 255, 255, 0.5);
+      font-size: 0.9rem;
+      margin-top: 0.5rem;
+      text-align: left;
+      padding-left: 0.5rem;
+    }
+  .select-file-btn {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    background: var(--secondary-color);
+    color: var(--primary-color);
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 1rem;
+    @include cyber-border;
+    transition: all 0.3s ease;
+    height: 100%;
+    
+    &:hover {
+      background: var(--hover-color);
+      @include neon-glow(#00c3ff);
+    }
+    
+    i {
+      font-size: 1.2rem;
+    }
+  }
+
+  .import-btn {
+    height: 100%;
+    padding: 0.75rem 1.5rem;
+    background: var(--accent-color);
+    color: var(--text-color);
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 1rem;
+    font-weight: 500;
+    @include cyber-border;
+    transition: all 0.3s ease;
+    
+    &:hover:not(:disabled) {
+      filter: brightness(1.2);
+      @include neon-glow(#00ff9f);
+    }
+
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      background: var(--secondary-color);
+      color: rgba(255, 255, 255, 0.3);
+      
+      &::after {
+        content: attr(title);
+        position: absolute;
+        top: 120%;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(0, 0, 0, 0.8);
+        color: white;
+        padding: 0.5rem;
+        border-radius: 4px;
+        font-size: 0.8rem;
+        white-space: nowrap;
+        pointer-events: none;
+        opacity: 0;
+        transition: opacity 0.2s;
+      }
+      
+      &:hover::after {
+        opacity: 1;
+      }
+    }
+  }
+
+  .file-input {
+    display: none;
+  }
+
+  .file-display {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.5rem 1rem;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 4px;
+    @include cyber-border;    .file-name {
+      color: var(--text-color);
+      font-size: 0.9rem;
+      opacity: 0.8;
+      max-width: calc(100% - 2rem);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .remove-file-btn {
+      background: none;
+      border: none;
+      color: #ff003c;
+      font-size: 1.2rem;
+      cursor: pointer;
+      padding: 0.2rem;
+      margin-left: 0.5rem;
+      transition: all 0.2s;
+      opacity: 0.8;
+      border-radius: 50%;
+
+      &:hover {
+        transform: scale(1.1);
+        opacity: 1;
+        background: rgba(255, 0, 60, 0.1);
+        @include neon-glow(#ff003c);
+      }
+    }
+  }
+}
+
+// Tag section styles
+.tag-section {
+  margin-bottom: 1.5rem;
+
+  .tag-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+
+    .tag {
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      transition: all 0.3s ease;
+      background: var(--secondary-color);
+      color: #00c3ff;
+      @include cyber-border;
+      box-shadow: 0 0 10px rgba(0, 195, 255, 0.2);
+
+      &:hover:not(.disabled) {
+        transform: translateY(-1px);
+        @include neon-glow(#00c3ff);
+      }
+
+      &.active {
+        background: #00ff9f;
+        color: var(--text-color);
+        @include neon-glow(#00ff9f);
+      }
+
+      &.disabled {
+        background: rgba(128, 128, 128, 0.1);
+        color: rgba(128, 128, 128, 0.4);
+        box-shadow: none;
+        border: 1px solid rgba(128, 128, 128, 0.2);
+        cursor: not-allowed;
+
+        &:hover {
+          transform: none;
+        }
+      }
+    }
+  }
+}
+
+// Video grid styles
+.video-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 20px;
+  margin-top: 20px;
+}
+
+.grid-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+
+  button {
+    background: var(--secondary-color);
+    color: var(--primary-color);
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    &:hover:not(:disabled) {
+      background: var(--hover-color);
+    }
+  }
+}
+
+.video-card {
+  @include cyber-border;
+  background: var(--card-bg);
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  transition: transform 0.2s;
+  
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 0 20px rgba(0, 195, 255, 0.2);
+  }
+
+  .video-cover {
+    width: 100%;
+    height: 150px;
+    overflow: hidden;
+
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+  }
+
+  .video-info {
+    padding: 15px;
+  }
+
+  .video-title {
+    color: var(--primary-color);
+    font-size: 16px;
+    font-weight: bold;
+    text-decoration: none;
+    display: block;
+    margin-bottom: 8px;
+    
+    &:hover {
+      @include neon-glow(#00c3ff);
+    }
+  }
+
+  .video-meta {
+    font-size: 14px;
+    color: #666;
+    margin-bottom: 8px;
+  }
+
+  .video-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin-bottom: 8px;
+
+    .tag-pill {
+      background: var(--secondary-color);
+      color: #00c3ff;
+      padding: 0.2rem 0.6rem;
+      border-radius: 12px;
+      font-size: 0.8rem;
+      @include cyber-border;
+      box-shadow: 0 0 10px rgba(0, 195, 255, 0.2);
+      transition: all 0.2s ease;
+
+      &:hover {
+        transform: translateY(-1px);
+        @include neon-glow(#00c3ff);
+      }
+    }
+  }
+
+  .video-note {
+    font-size: 14px;
+    color: #666;
+    font-style: italic;
+  }
+}
+
+// Modal styles
+.video-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  
+  .modal-content {
+    background: var(--card-bg);
+    border-radius: 8px;
+    padding: 20px;
+    max-width: 800px;
+    width: 100%;
+    position: relative;
+    @include cyber-border;
+  }
+
+  .close-button {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: none;
+    border: none;
+    color: var(--text-color);
+    font-size: 24px;
+    cursor: pointer;
+    transition: all 0.2s;
+
+    &:hover {
+      color: #ff003c;
+      transform: scale(1.1);
+    }
+  }
+
+  .video-player {
+    overflow: hidden;
+    padding-top: 56.25%;
+    position: relative;
+    height: 0;
+    margin-bottom: 1rem;
+    @include cyber-border;
+
+    iframe {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      border: 0;
+    }
+  }
+
+  .video-details {
+    margin-top: 15px;
+    color: var(--text-color);
+
+    h2 {
+      font-size: 18px;
+      margin-bottom: 10px;
+    }
+
+    p {
+      font-size: 14px;
+      opacity: 0.8;
+      margin-bottom: 10px;
+    }
+  }
+
+  .modal-tags {
+    font-size: 14px;
+    color: #00c3ff;
+  }
+}
+
+// Error styles
+.error-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background-color: #ff003c;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem;
+  font-size: 1rem;
+  z-index: 1000;
+  box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.2);
+
+  i {
+    margin-right: 0.5rem;
+    font-size: 1.5rem;
+  }
+
+  .close-error-btn {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 1.5rem;
+    cursor: pointer;
+    padding: 0;
+    margin-left: 1rem;
+    transition: transform 0.2s;
+
+    &:hover {
+      transform: scale(1.2);
+    }
+  }
+}
+
+// No results state
+.no-results {
+  text-align: center;
+  padding: 2rem;
+  color: var(--text-color);
+  opacity: 0.7;
+  font-size: 1.1rem;
+}
+}

@@ -2,113 +2,28 @@
   <div class="home bookmarks-container">
     <Navbar :gridColumns="gridColumns" @update-grid-columns="updateGridColumns" />
     <h1>Video Library</h1>
-    <div class="import-section">
-      <div class="import-options">        <div class="unified-import">
-          <div class="import-controls">
-            <div class="file-input-wrap">
-              <input 
-                type="file" 
-                accept=".csv,.html" 
-                @change="handleFileUpload" 
-                class="file-input" 
-                ref="fileInput"
-              />
-              <button class="select-file-btn" @click="triggerFileInput">
-                <i class="pi pi-upload"></i>
-                Select File
-              </button>
-              <div v-if="!selectedFile" class="input-info">Choose collection file to import</div>
-            </div>
-            <button 
-              @click="importFile" 
-              class="import-btn"
-              :disabled="!selectedFile"
-              :title="!selectedFile ? 'Choose collection file to import' : ''"
-            >
-              <i class="pi pi-download"></i>
-              Import
-            </button>
-          </div>
-          <span class="selected-file" v-if="selectedFile">{{ selectedFile.name }}</span>
-        </div>
-      </div>
-        <div v-if="selectedFile" class="file-display">
-          <span class="file-name">{{ selectedFile.name }}</span>
-          <button class="remove-file-btn" @click="clearSelectedFile">&times;</button>
-        </div>
-    </div>
+    
+    <import-section
+      :selected-file="selectedFile"
+      @file-selected="handleFileUpload"
+      @file-clear="clearSelectedFile"
+      @import="importFile"
+    />
 
-    <div v-if="playlists.length" class="content-section">
-      <div v-if="tagList.length > 0" class="tag-section">
-        <div class="tag-filters">
-          <button
-            v-for="tag in tagList"
-            :key="tag.name"
-            @click="toggleTag(tag.name)"
-            :class="['tag', { 
-              active: tag.isActive,
-              disabled: tag.count === 0 
-            }]"
-            :disabled="tag.count === 0"
-          >
-            {{ tag.name }} ({{ tag.count }})
-          </button>
-        </div>
-      </div>
-      <div v-if="filteredVideos.length === 0" class="no-results">
-        <em>No results found</em>
-      </div>
-      <div v-else class="video-grid" :style="{ gridTemplateColumns: `repeat(${gridColumns}, 1fr)` }">
-        <div v-for="video in filteredVideos" :key="video.id" class="video-card" @click="openVideoModal(video)">
-          <div class="video-cover">
-            <img
-              :src="video.cover || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1zbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgZmlsbD0iI2YwZjBmMCIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMjAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGFsaWdubWVudC1iYXNlbGluZT0ibWlkZGxlIiBmaWxsPSIjOTk5Ij5ObyBJbWFnZTwvdGV4dD48L3N2Zz4='"
-              :alt="video.title"
-              @error="handleImageError"
-            >
-          </div>
-          <div class="video-info">
-            <span class="video-title">{{ video.title || 'Untitled Video' }}</span>
-            <div class="video-meta" v-if="video.created">
-              Added: {{ new Date(video.created).toLocaleDateString() }}
-            </div>            <div class="video-tags" v-if="video.tags">
-              <span v-for="tag in video.tags.split(', ')" :key="tag" class="tag-pill">
-                {{ tag }}
-              </span>
-            </div>
-            <div class="video-note" v-if="video.note">
-              {{ video.note }}
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+    <video-grid
+      v-if="playlists.length"
+      :videos="filteredVideos"
+      :tag-list="tagList"
+      :columns="gridColumns"
+      @video-click="openVideoModal"
+      @tag-toggle="toggleTag"
+    />
 
-    <!-- Video Modal -->
-    <div v-if="showVideoModal" class="video-modal" @click.self="closeVideoModal">
-      <div class="modal-content">
-        <button class="close-button" @click="closeVideoModal">&times;</button>
-        <div class="video-player">
-          <iframe
-            v-if="!embedError"
-            :src="selectedVideo?.url"
-            frameborder="0"
-            allowfullscreen
-          ></iframe>
-          <div v-else class="embed-error">
-            <p>Unable to play this video.</p>
-            <button @click="openInNewTab(selectedVideo.url)">Watch on original site</button>
-          </div>
-        </div>
-        <div class="video-details">
-          <h2>{{ selectedVideo?.title }}</h2>
-          <p v-if="selectedVideo?.note">{{ selectedVideo.note }}</p>
-          <div v-if="selectedVideo?.tags" class="modal-tags">
-            Tags: {{ selectedVideo.tags }}
-          </div>
-        </div>
-      </div>
-    </div>
+    <video-modal
+      :video="selectedVideo"
+      v-if="showVideoModal"
+      @close="closeVideoModal"
+    />
 
     <!-- Error Bar -->
     <div v-if="errorMessage" class="error-bar">
@@ -121,13 +36,18 @@
 
 <script>
 import Navbar from '@/components/Navbar.vue';
+import ImportSection from '@/components/ImportSection.vue';
+import VideoGrid from '@/components/VideoGrid.vue';
+import VideoModal from '@/components/VideoModal.vue';
 import Papa from 'papaparse';
 import 'primeicons/primeicons.css';
 
-export default {
-  name: 'Home',
+export default {  name: 'Home',
   components: {
-    Navbar
+    Navbar,
+    ImportSection,
+    VideoGrid,
+    VideoModal
   },
   data() {
     return {
@@ -194,19 +114,13 @@ export default {
         return a.name.localeCompare(b.name);
       });
     }
-  },
-  methods: {    handleFileUpload(event) {
-      const file = event.target.files[0];
+  },  methods: {    
+    handleFileUpload(file) {
       this.selectedFile = file;
-      // Store file info in localStorage
-      localStorage.setItem('lastSelectedFile', JSON.stringify({
-        name: file.name,
-        type: file.type,
-        lastModified: file.lastModified
-      }));
       // Reset HTML content when a new file is selected
       this.htmlContent = null;
-    },toggleTag(tag) {
+    },
+    toggleTag(tag) {
       const index = this.selectedTags.indexOf(tag);
       if (index === -1) {
         this.selectedTags.push(tag);
@@ -453,548 +367,22 @@ export default {
     clearSelectedFile() {
       this.selectedFile = null;
     }
-  },
-  mounted() {
+  },  mounted() {
     // Load any existing playlists from localStorage
     const savedPlaylists = localStorage.getItem('playlists');
     if (savedPlaylists) {
       this.playlists = JSON.parse(savedPlaylists);
+    }
+    
+    // Restore last selected file info
+    const lastSelectedFile = localStorage.getItem('lastSelectedFile');
+    if (lastSelectedFile) {
+      this.selectedFile = JSON.parse(lastSelectedFile);
     }
   }
 };
 </script>
 
 <style lang="scss">
-@use '../assets/styles/cyberpunk.scss' as *;
-
-.error-bar {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  background-color: #ff003c;
-  color: white;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 1rem;
-  font-size: 1rem;
-  z-index: 1000;
-  box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.2);
-
-  i {
-    margin-right: 0.5rem;
-    font-size: 1.5rem;
-  }
-
-  .close-error-btn {
-    background: none;
-    border: none;
-    color: white;
-    font-size: 1.5rem;
-    cursor: pointer;
-    padding: 0;
-    margin-left: 1rem;
-    transition: transform 0.2s;
-
-    &:hover {
-      transform: scale(1.2);
-    }
-  }
-}
-
-.home {
-  margin: 0 auto;
-  padding: 0;
-}
-
-.import-section {
-  margin: 20px 0;
-  padding: 20px;
-  background: var(--card-bg);
-  border-radius: 8px;
-  @include cyber-border;
-  .import-options {
-    display: flex;
-    justify-content: center;
-    padding: 1rem;
-  }
-  .unified-import {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-    max-width: 600px;
-    width: 100%;
-
-    .import-controls {
-      display: grid;
-      grid-template-columns: 2fr 1fr;
-      gap: 1rem;
-      align-items: start;
-    }
-
-    .input-info {
-      color: rgba(255, 255, 255, 0.5);
-      font-size: 0.8rem;
-      margin-top: 0.25rem;
-    }
-  }
-
-  .file-input-wrap {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-    align-items: center;
-    
-    .file-input {
-      display: none;
-    }
-    
-    .select-file-btn {
-      width: 100%;
-      padding: 1rem;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 0.5rem;
-      background: var(--secondary-color);
-      color: var(--primary-color);
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-      font-size: 1rem;
-      @include cyber-border;
-      transition: all 0.3s ease;
-      
-      &:hover {
-        background: var(--hover-color);
-        @include neon-glow(#00ff9f);
-      }
-      
-      i {
-        font-size: 1.2rem;
-      }
-    }
-    
-    .selected-file {
-      color: var(--text-color);
-      font-size: 0.9rem;
-      opacity: 0.8;
-    }
-  }
-
-  .import-btn {
-    width: 100%;
-    padding: 1rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.5rem;
-    background: var(--accent-color);
-    color: var(--text-color);
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 1rem;
-    @include cyber-border;
-    transition: all 0.3s ease;
-    
-    &:hover {
-      filter: brightness(1.2);
-      @include neon-glow(#ff003c);
-    }
-    
-    i {
-      font-size: 1.2rem;
-    }
-  }
-
-  button {
-    background: var(--secondary-color);
-    color: var(--primary-color);
-    border: none;
-    padding: 0.75rem 1rem;
-    border-radius: 4px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    @include cyber-border;
-    
-    &:hover:not(:disabled) {
-      background: var(--hover-color);
-      @include neon-glow(#00ff9f);
-    }
-    
-    &:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-    }
-
-    i {
-      margin-right: 0.5rem;
-    }
-  }
-
-  .file-display {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0.5rem;
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 4px;
-    margin-top: 1rem;
-    @include cyber-border;
-
-    .file-name {
-      color: var(--text-color);
-      font-size: 0.9rem;
-    }
-
-    .remove-file-btn {
-      background: none;
-      border: none;
-      color: #ff003c;
-      font-size: 1.2rem;
-      cursor: pointer;
-      padding: 0;
-      margin-left: 0.5rem;
-      transition: transform 0.2s;
-
-      &:hover {
-        transform: scale(1.2);
-      }
-    }
-  }
-}
-
-.playlists {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 20px;
-  margin-top: 20px
-}
-
-.playlist-card {
-  padding: 20px;
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-}
-
-button {
-  margin-left: 10px;
-  padding: 8px 16px;
-  background: #4CAF50;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-button:disabled {
-  background: #ccc;
-  cursor: not-allowed;
-}
-
-a {
-  display: inline-block;
-  margin-top: 10px;
-  color: #2196F3;
-  text-decoration: none;
-}
-
-a:hover {
-  text-decoration: underline;
-}
-
-.video-list {
-  margin: 15px 0;
-}
-
-.video-list ul {
-  list-style: none;
-  padding-left: 0;
-}
-
-.video-list li {
-  margin: 8px 0;
-}
-
-.video-list a {
-  color: #666;
-  text-decoration: none;
-}
-
-.video-list a:hover {
-  color: #2196F3;
-}
-
-.video-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-  gap: 20px;
-  margin-top: 20px;
-}
-
-.video-card {
-  @include cyber-border;
-  background: var(--card-bg);
-  border-radius: 8px;
-  overflow: hidden;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-  transition: transform 0.2s;
-  
-  &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 0 20px rgba(0, 255, 159, 0.2);
-  }
-}
-
-.video-cover {
-  width: 100%;
-  height: 150px;
-  overflow: hidden;
-}
-
-.video-cover img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.video-info {
-  padding: 15px;
-}
-
-.video-title {
-  color: var(--primary-color);
-  font-size: 16px;
-  font-weight: bold;
-  text-decoration: none;
-  display: block;
-  margin-bottom: 8px;
-  
-  &:hover {
-    @include neon-glow(#00ff9f);
-  }
-}
-
-.video-meta {
-  font-size: 14px;
-  color: #666;
-  margin-bottom: 8px;
-}
-
-.video-tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.4rem;
-  margin-bottom: 8px;
-
-  .tag-pill {
-    background: var(--secondary-color);
-    color: var(--primary-color);
-    padding: 0.2rem 0.6rem;
-    border-radius: 12px;
-    font-size: 0.8rem;
-    @include cyber-border;
-    transition: all 0.2s ease;
-
-    &:hover {
-      transform: translateY(-1px);
-      @include neon-glow(#00ff9f);
-    }
-  }
-}
-
-.video-note {
-  font-size: 14px;
-  color: #666;
-  font-style: italic;
-}
-
-.content-section {
-  margin-top: 20px;
-}
-
-.controls {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 20px;
-}
-
-tag-filters {
-  display: flex;
-  flex-wrap: wrap;
-}
-
-.tag {
-  background: var(--secondary-color);
-  color: #00c3ff;
-  border-radius: 8px;
-  @include cyber-border;
-  box-shadow: 0 0 10px rgba(0, 195, 255, 0.2);
-  
-  &.active {
-    background: #00ff9f;
-    color: var(--text-color);
-    @include neon-glow(#00ff9f);
-  }
-  
-  &.disabled {
-    background: rgba(128, 128, 128, 0.1);
-    color: rgba(128, 128, 128, 0.4);
-    box-shadow: none;
-    border: 1px solid rgba(128, 128, 128, 0.2);
-    cursor: not-allowed;
-    
-    &:hover {
-      transform: none;
-    }
-  }
-
-  &.disabled {
-    background: #ccc;
-    color: #666;
-    cursor: not-allowed;
-  }
-}
-
-.tag-section {
-  margin-bottom: 1.5rem;
-  
-  .tag-filters {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-    
-    button.tag {
-      padding: 0.5rem 1rem;
-      border-radius: 4px;
-      cursor: pointer;
-      font-size: 0.9rem;
-      transition: all 0.3s ease;
-      
-      &:hover {
-        transform: translateY(-1px);
-        @include neon-glow(#00ff9f);
-      }
-      
-      &.active {
-        background: var(--accent-color);
-        color: var(--text-color);
-        @include neon-glow(#ff003c);
-      }
-
-      &.disabled {
-        background: #ccc;
-        color: #666;
-        cursor: not-allowed;
-      }
-    }
-  }
-}
-
-.video-modal {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.8);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-}
-
-.modal-content {
-  background: white;
-  border-radius: 8px;
-  padding: 20px;
-  max-width: 800px;
-  width: 100%;
-  position: relative;
-}
-
-.close-button {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  background: none;
-  border: none;
-  font-size: 24px;
-  cursor: pointer;
-}
-
-.video-player {
-  overflow: hidden;
-  padding-top: 56.25% /* 16:9 Aspect Ratio */;
-  position: relative;
-  height: 0;
-}
-
-.video-player iframe {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  border: 0;
-}
-
-.video-details {
-  margin-top: 15px;
-}
-
-.video-details h2 {
-  font-size: 18px;
-  margin-bottom: 10px;
-}
-
-.video-details p {
-  font-size: 14px;
-  color: #666;
-  margin-bottom: 10px;
-}
-
-.modal-tags {
-  font-size: 14px;
-  color: #2196F3;
-}
-
-.embed-error {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  text-align: center;
-  color: #666;
-}
-
-.embed-error p {
-  margin-bottom: 15px;
-  font-size: 16px;
-}
-
-.embed-error button {
-  background: #2196F3;
-  color: white;
-  padding: 10px 20px;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: background 0.3s;
-}
-
-.embed-error button:hover {
-  background: #1976D2;
-}
-
-.no-results {
-  text-align: center;
-  padding: 2rem;
-  color: var(--text-color);
-  opacity: 0.7;
-  font-size: 1.1rem;
-}
+@use '../assets/styles/_home.scss';
 </style>
