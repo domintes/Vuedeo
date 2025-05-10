@@ -18,6 +18,14 @@
           <span>{{ gridColumns }}</span>
           <button @click="updateGridColumns(gridColumns + 1)" :disabled="gridColumns >= 10">+</button>
         </div>
+        <div class="pagination-controls">
+          <label for="resultsPerPage">Results per page:</label>
+          <select id="resultsPerPage" v-model="resultsPerPage" @change="updateResultsPerPage">
+            <option v-for="option in resultsPerPageOptions" :key="option" :value="option">
+              {{ option }}
+            </option>
+          </select>
+        </div>
         <button class="close-btn" @click="toggleSettingsMenu">Close</button>
       </div>
     </div>
@@ -35,13 +43,18 @@ export default {
   },
   data() {
     return {
-      showSettings: false
+      showSettings: false,
+      resultsPerPage: 10,
+      resultsPerPageOptions: [10, 20, 50, 100]
     };
   },
   methods: {
     updateGridColumns(value) {
       // Ensure the emitted event is clear and specific to grid updates
       this.$emit('update-grid-columns', value);
+    },
+    updateResultsPerPage() {
+      this.$emit('update-results-per-page', this.resultsPerPage);
     },
     toggleSettingsMenu() {
       this.showSettings = !this.showSettings;
@@ -104,6 +117,13 @@ export default {
     margin-bottom: 1rem;
 }
 
+.pagination-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+
 button {
     background: var(--secondary-color);
     color: var(--primary-color);
@@ -135,5 +155,20 @@ button:hover:not(:disabled) {
 
 .close-btn:hover {
     background: var(--hover-color);
+}
+
+select {
+    background: var(--card-bg);
+    color: var(--text-color);
+    border: 1px solid var(--border-color);
+    padding: 0.5rem;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: border-color 0.3s ease;
+}
+
+select:focus {
+    outline: none;
+    border-color: var(--primary-color);
 }
 </style>

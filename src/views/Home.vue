@@ -53,7 +53,7 @@ export default {  name: 'Home',
     return {
       selectedFile: null,
       playlists: [],
-      gridColumns: 3,
+      gridColumns: 5,
       selectedTags: [],
       allTags: new Set(),
       showVideoModal: false,
