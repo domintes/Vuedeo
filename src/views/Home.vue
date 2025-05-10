@@ -1,25 +1,26 @@
 <template>
   <div class="home bookmarks-container">
-    <h1>Video Library</h1>
-    <div class="import-section">
-      <div class="import-options">
-        <div class="import-option">
-          <label class="file-label">
-            <span>Import CSV</span>
-            <input type="file" accept=".csv" @change="handleFileUpload" />
-          </label>
-          <button @click="importCSV" :disabled="!selectedFile || selectedFile.name.endsWith('.html')">
-            <i class="pi pi-file-excel"></i> Import CSV
-          </button>
+    <div class="grid-controls">
+          <label>Grid Columns:</label>
+          <button @click="updateGridColumns(gridColumns - 1)" :disabled="gridColumns <= 1">-</button>
+          <span>{{ gridColumns }}</span>
+          <button @click="updateGridColumns(gridColumns + 1)" :disabled="gridColumns >= 7">+</button>
         </div>
-        
-        <div class="import-option">
-          <label class="file-label">
-            <span>Import HTML Bookmarks</span>
-            <input type="file" accept=".html" @change="handleFileUpload" />
+
+    <h1>Video Library</h1>    <div class="import-section">
+      <div class="import-options">
+        <div class="unified-import">
+          <label class="file-input-wrap">
+            <input type="file" accept=".csv,.html" @change="handleFileUpload" class="file-input" />
+            <button class="select-file-btn">
+              <i class="pi pi-upload"></i>
+              Select File
+            </button>
+            <span class="selected-file" v-if="selectedFile">{{ selectedFile.name }}</span>
           </label>
-          <button @click="importHTML" :disabled="!selectedFile || !selectedFile.name.endsWith('.html')">
-            <i class="pi pi-bookmark"></i> Import HTML
+          <button @click="importFile" v-if="selectedFile" class="import-btn">
+            <i :class="['pi', selectedFile.name.endsWith('.html') ? 'pi-bookmark' : 'pi-file-excel']"></i>
+            Import {{ selectedFile.name.endsWith('.html') ? 'Bookmarks' : 'CSV' }}
           </button>
         </div>
       </div>
@@ -27,14 +28,8 @@
 
     <div v-if="playlists.length" class="content-section">
       <div class="controls">
-        <div class="grid-controls">
-          <label>Grid Columns:</label>
-          <button @click="updateGridColumns(gridColumns - 1)" :disabled="gridColumns <= 1">-</button>
-          <span>{{ gridColumns }}</span>
-          <button @click="updateGridColumns(gridColumns + 1)" :disabled="gridColumns >= 7">+</button>
-        </div>
-
-        <div class="tag-filters">          <span 
+        <div class="tag-filters">
+        <span 
             v-for="tag in tagList" 
             :key="tag.name"
             @click="tag.count > 0 && toggleTag(tag.name)"
@@ -52,8 +47,9 @@
       </div>
 
       <div class="video-grid" :style="{ gridTemplateColumns: `repeat(${gridColumns}, 1fr)` }">
-        <div v-for="video in filteredVideos" :key="video.id" class="video-card" @click="openVideoModal(video)">          <div class="video-cover">
-            <img 
+        <div v-for="video in filteredVideos" :key="video.id" class="video-card" @click="openVideoModal(video)">
+          <div class="video-cover">
+            <img
               :src="video.cover || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgZmlsbD0iI2YwZjBmMCIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMjAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGFsaWdubWVudC1iYXNlbGluZT0ibWlkZGxlIiBmaWxsPSIjOTk5Ij5ObyBJbWFnZTwvdGV4dD48L3N2Zz4='"
               :alt="video.title"
               @error="handleImageError"
@@ -405,9 +401,8 @@ export default {
 @use '../assets/styles/cyberpunk.scss' as *;
 
 .home {
-  max-width: 1200px;
   margin: 0 auto;
-  padding: 20px;
+  padding: 0;
 }
 
 .import-section {
@@ -416,33 +411,86 @@ export default {
   background: var(--card-bg);
   border-radius: 8px;
   @include cyber-border;
-
   .import-options {
     display: flex;
-    gap: 2rem;
-    flex-wrap: wrap;
+    justify-content: center;
+    padding: 1rem;
   }
 
-  .import-option {
-    flex: 1;
-    min-width: 250px;
+  .unified-import {
     display: flex;
     flex-direction: column;
     gap: 1rem;
+    max-width: 400px;
+    width: 100%;
   }
 
-  .file-label {
+  .file-input-wrap {
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
+    align-items: center;
     
-    span {
-      color: var(--primary-color);
-      font-size: 0.9rem;
+    .file-input {
+      display: none;
     }
     
-    input[type="file"] {
-      display: none;
+    .select-file-btn {
+      width: 100%;
+      padding: 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      background: var(--secondary-color);
+      color: var(--primary-color);
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 1rem;
+      @include cyber-border;
+      transition: all 0.3s ease;
+      
+      &:hover {
+        background: var(--hover-color);
+        @include neon-glow(#00ff9f);
+      }
+      
+      i {
+        font-size: 1.2rem;
+      }
+    }
+    
+    .selected-file {
+      color: var(--text-color);
+      font-size: 0.9rem;
+      opacity: 0.8;
+    }
+  }
+
+  .import-btn {
+    width: 100%;
+    padding: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    background: var(--accent-color);
+    color: var(--text-color);
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 1rem;
+    @include cyber-border;
+    transition: all 0.3s ease;
+    
+    &:hover {
+      filter: brightness(1.2);
+      @include neon-glow(#ff003c);
+    }
+    
+    i {
+      font-size: 1.2rem;
     }
   }
 
@@ -476,7 +524,7 @@ export default {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: 20px;
-  margin-top: 20px;
+  margin-top: 20px
 }
 
 .playlist-card {

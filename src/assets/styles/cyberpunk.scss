@@ -45,7 +45,8 @@ body {
   h1 {
     color: var(--primary-color);
     @include neon-glow(#00ff9f);
-    margin-bottom: 2rem;
+    margin: 0;
+    padding: 0;
   }
 }
 
