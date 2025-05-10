@@ -16,7 +16,7 @@
           <label>Grid Columns:</label>
           <button @click="updateGridColumns(gridColumns - 1)" :disabled="gridColumns <= 1">-</button>
           <span>{{ gridColumns }}</span>
-          <button @click="updateGridColumns(gridColumns + 1)" :disabled="gridColumns >= 7">+</button>
+          <button @click="updateGridColumns(gridColumns + 1)" :disabled="gridColumns >= 10">+</button>
         </div>
         <button class="close-btn" @click="toggleSettingsMenu">Close</button>
       </div>

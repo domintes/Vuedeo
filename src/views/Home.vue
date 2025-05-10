@@ -3,31 +3,62 @@
     <Navbar :gridColumns="gridColumns" @update-grid-columns="updateGridColumns" />
     <h1>Video Library</h1>
     <div class="import-section">
-      <div class="import-options">
-        <div class="unified-import">          <div class="file-input-wrap">
-            <input 
-              type="file" 
-              accept=".csv,.html" 
-              @change="handleFileUpload" 
-              class="file-input" 
-              ref="fileInput"
-            />
-            <button class="select-file-btn" @click="triggerFileInput">
-              <i class="pi pi-upload"></i>
-              Select File
+      <div class="import-options">        <div class="unified-import">
+          <div class="import-controls">
+            <div class="file-input-wrap">
+              <input 
+                type="file" 
+                accept=".csv,.html" 
+                @change="handleFileUpload" 
+                class="file-input" 
+                ref="fileInput"
+              />
+              <button class="select-file-btn" @click="triggerFileInput">
+                <i class="pi pi-upload"></i>
+                Select File
+              </button>
+              <div v-if="!selectedFile" class="input-info">Choose collection file to import</div>
+            </div>
+            <button 
+              @click="importFile" 
+              class="import-btn"
+              :disabled="!selectedFile"
+              :title="!selectedFile ? 'Choose collection file to import' : ''"
+            >
+              <i class="pi pi-download"></i>
+              Import
             </button>
-            <span class="selected-file" v-if="selectedFile">{{ selectedFile.name }}</span>
           </div>
-          <button @click="importFile" v-if="selectedFile" class="import-btn">
-            <i :class="['pi', selectedFile.name.endsWith('.html') ? 'pi-bookmark' : 'pi-file-excel']"></i>
-            Import {{ selectedFile.name.endsWith('.html') ? 'Bookmarks' : 'CSV' }}
-          </button>
+          <span class="selected-file" v-if="selectedFile">{{ selectedFile.name }}</span>
         </div>
       </div>
+        <div v-if="selectedFile" class="file-display">
+          <span class="file-name">{{ selectedFile.name }}</span>
+          <button class="remove-file-btn" @click="clearSelectedFile">&times;</button>
+        </div>
     </div>
 
     <div v-if="playlists.length" class="content-section">
-      <div class="video-grid" :style="{ gridTemplateColumns: `repeat(${gridColumns}, 1fr)` }">
+      <div v-if="tagList.length > 0" class="tag-section">
+        <div class="tag-filters">
+          <button
+            v-for="tag in tagList"
+            :key="tag.name"
+            @click="toggleTag(tag.name)"
+            :class="['tag', { 
+              active: tag.isActive,
+              disabled: tag.count === 0 
+            }]"
+            :disabled="tag.count === 0"
+          >
+            {{ tag.name }} ({{ tag.count }})
+          </button>
+        </div>
+      </div>
+      <div v-if="filteredVideos.length === 0" class="no-results">
+        <em>No results found</em>
+      </div>
+      <div v-else class="video-grid" :style="{ gridTemplateColumns: `repeat(${gridColumns}, 1fr)` }">
         <div v-for="video in filteredVideos" :key="video.id" class="video-card" @click="openVideoModal(video)">
           <div class="video-cover">
             <img
@@ -40,9 +71,10 @@
             <span class="video-title">{{ video.title || 'Untitled Video' }}</span>
             <div class="video-meta" v-if="video.created">
               Added: {{ new Date(video.created).toLocaleDateString() }}
-            </div>
-            <div class="video-tags" v-if="video.tags">
-              {{ video.tags }}
+            </div>            <div class="video-tags" v-if="video.tags">
+              <span v-for="tag in video.tags.split(', ')" :key="tag" class="tag-pill">
+                {{ tag }}
+              </span>
             </div>
             <div class="video-note" v-if="video.note">
               {{ video.note }}
@@ -163,12 +195,18 @@ export default {
       });
     }
   },
-  methods: {
-    handleFileUpload(event) {
-      this.selectedFile = event.target.files[0];
+  methods: {    handleFileUpload(event) {
+      const file = event.target.files[0];
+      this.selectedFile = file;
+      // Store file info in localStorage
+      localStorage.setItem('lastSelectedFile', JSON.stringify({
+        name: file.name,
+        type: file.type,
+        lastModified: file.lastModified
+      }));
       // Reset HTML content when a new file is selected
       this.htmlContent = null;
-    },    toggleTag(tag) {
+    },toggleTag(tag) {
       const index = this.selectedTags.indexOf(tag);
       if (index === -1) {
         this.selectedTags.push(tag);
@@ -253,13 +291,12 @@ export default {
             id: 'all',
             name: 'All Videos',
             description: 'All imported videos',
-            videos: validRows.map(row => ({
-              id: String(row.id),
+            videos: validRows.map(row => ({              id: String(row.id),
               title: row.title || 'Untitled Video',
               url: row.url,
               cover: row.cover || '',
               note: row.note || '',
-              tags: row.tags || '',
+              tags: (row.tags || '').split(',').map(tag => tag.trim()).filter(tag => tag).join(', '),
               created: row.created || ''
             }))
           }];          // Extract tags from the videos
@@ -347,14 +384,14 @@ export default {
             };
           } else {
             const a = child.querySelector('A');
-            if (a) {
-              // Add bookmark to current collection
+            if (a) {              // Add bookmark to current collection
+              const tags = a.getAttribute('TAGS') || '';
               currentCollection.bookmarks.push({
                 title: a.textContent,
                 url: a.getAttribute('HREF'),
                 addDate: parseInt(a.getAttribute('ADD_DATE')),
                 lastModified: parseInt(a.getAttribute('LAST_MODIFIED')),
-                tags: a.getAttribute('TAGS'),
+                tags: tags.split(',').map(tag => tag.trim()).filter(tag => tag).join(', '),
                 cover: a.getAttribute('DATA-COVER'),
                 important: a.getAttribute('DATA-IMPORTANT') === 'true',
                 description: child.querySelector('DD blockquote')?.textContent
@@ -412,6 +449,10 @@ export default {
     clearError() {
       this.errorMessage = null;
     },
+
+    clearSelectedFile() {
+      this.selectedFile = null;
+    }
   },
   mounted() {
     // Load any existing playlists from localStorage
@@ -478,13 +519,25 @@ export default {
     justify-content: center;
     padding: 1rem;
   }
-
   .unified-import {
     display: flex;
     flex-direction: column;
     gap: 1rem;
-    max-width: 400px;
+    max-width: 600px;
     width: 100%;
+
+    .import-controls {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 1rem;
+      align-items: start;
+    }
+
+    .input-info {
+      color: rgba(255, 255, 255, 0.5);
+      font-size: 0.8rem;
+      margin-top: 0.25rem;
+    }
   }
 
   .file-input-wrap {
@@ -578,6 +631,37 @@ export default {
 
     i {
       margin-right: 0.5rem;
+    }
+  }
+
+  .file-display {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.5rem;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+    margin-top: 1rem;
+    @include cyber-border;
+
+    .file-name {
+      color: var(--text-color);
+      font-size: 0.9rem;
+    }
+
+    .remove-file-btn {
+      background: none;
+      border: none;
+      color: #ff003c;
+      font-size: 1.2rem;
+      cursor: pointer;
+      padding: 0;
+      margin-left: 0.5rem;
+      transition: transform 0.2s;
+
+      &:hover {
+        transform: scale(1.2);
+      }
     }
   }
 }
@@ -701,9 +785,25 @@ a:hover {
 }
 
 .video-tags {
-  font-size: 14px;
-  color: #2196F3;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
   margin-bottom: 8px;
+
+  .tag-pill {
+    background: var(--secondary-color);
+    color: var(--primary-color);
+    padding: 0.2rem 0.6rem;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    @include cyber-border;
+    transition: all 0.2s ease;
+
+    &:hover {
+      transform: translateY(-1px);
+      @include neon-glow(#00ff9f);
+    }
+  }
 }
 
 .video-note {
@@ -722,20 +822,75 @@ a:hover {
   margin-bottom: 20px;
 }
 
-.tag-filters {
+tag-filters {
   display: flex;
   flex-wrap: wrap;
 }
 
 .tag {
   background: var(--secondary-color);
-  color: var(--primary-color);
+  color: #00c3ff;
+  border-radius: 8px;
   @include cyber-border;
+  box-shadow: 0 0 10px rgba(0, 195, 255, 0.2);
   
   &.active {
-    background: var(--accent-color);
+    background: #00ff9f;
     color: var(--text-color);
-    @include neon-glow(#ff003c);
+    @include neon-glow(#00ff9f);
+  }
+  
+  &.disabled {
+    background: rgba(128, 128, 128, 0.1);
+    color: rgba(128, 128, 128, 0.4);
+    box-shadow: none;
+    border: 1px solid rgba(128, 128, 128, 0.2);
+    cursor: not-allowed;
+    
+    &:hover {
+      transform: none;
+    }
+  }
+
+  &.disabled {
+    background: #ccc;
+    color: #666;
+    cursor: not-allowed;
+  }
+}
+
+.tag-section {
+  margin-bottom: 1.5rem;
+  
+  .tag-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    
+    button.tag {
+      padding: 0.5rem 1rem;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      transition: all 0.3s ease;
+      
+      &:hover {
+        transform: translateY(-1px);
+        @include neon-glow(#00ff9f);
+      }
+      
+      &.active {
+        background: var(--accent-color);
+        color: var(--text-color);
+        @include neon-glow(#ff003c);
+      }
+
+      &.disabled {
+        background: #ccc;
+        color: #666;
+        cursor: not-allowed;
+      }
+    }
   }
 }
 
@@ -833,5 +988,13 @@ a:hover {
 
 .embed-error button:hover {
   background: #1976D2;
+}
+
+.no-results {
+  text-align: center;
+  padding: 2rem;
+  color: var(--text-color);
+  opacity: 0.7;
+  font-size: 1.1rem;
 }
 </style>
