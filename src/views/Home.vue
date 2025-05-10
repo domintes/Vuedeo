@@ -1,23 +1,23 @@
 <template>
   <div class="home bookmarks-container">
-    <div class="grid-controls">
-          <label>Grid Columns:</label>
-          <button @click="updateGridColumns(gridColumns - 1)" :disabled="gridColumns <= 1">-</button>
-          <span>{{ gridColumns }}</span>
-          <button @click="updateGridColumns(gridColumns + 1)" :disabled="gridColumns >= 7">+</button>
-        </div>
-
-    <h1>Video Library</h1>    <div class="import-section">
+    <Navbar :gridColumns="gridColumns" @update-grid-columns="updateGridColumns" />
+    <h1>Video Library</h1>
+    <div class="import-section">
       <div class="import-options">
-        <div class="unified-import">
-          <label class="file-input-wrap">
-            <input type="file" accept=".csv,.html" @change="handleFileUpload" class="file-input" />
-            <button class="select-file-btn">
+        <div class="unified-import">          <div class="file-input-wrap">
+            <input 
+              type="file" 
+              accept=".csv,.html" 
+              @change="handleFileUpload" 
+              class="file-input" 
+              ref="fileInput"
+            />
+            <button class="select-file-btn" @click="triggerFileInput">
               <i class="pi pi-upload"></i>
               Select File
             </button>
             <span class="selected-file" v-if="selectedFile">{{ selectedFile.name }}</span>
-          </label>
+          </div>
           <button @click="importFile" v-if="selectedFile" class="import-btn">
             <i :class="['pi', selectedFile.name.endsWith('.html') ? 'pi-bookmark' : 'pi-file-excel']"></i>
             Import {{ selectedFile.name.endsWith('.html') ? 'Bookmarks' : 'CSV' }}
@@ -27,30 +27,11 @@
     </div>
 
     <div v-if="playlists.length" class="content-section">
-      <div class="controls">
-        <div class="tag-filters">
-        <span 
-            v-for="tag in tagList" 
-            :key="tag.name"
-            @click="tag.count > 0 && toggleTag(tag.name)"
-            :class="[
-              'tag', 
-              { 
-                'active': tag.isActive,
-                'disabled': tag.count === 0
-              }
-            ]"
-          >
-            {{ tag.name }} ({{ tag.count }})
-          </span>
-        </div>
-      </div>
-
       <div class="video-grid" :style="{ gridTemplateColumns: `repeat(${gridColumns}, 1fr)` }">
         <div v-for="video in filteredVideos" :key="video.id" class="video-card" @click="openVideoModal(video)">
           <div class="video-cover">
             <img
-              :src="video.cover || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgZmlsbD0iI2YwZjBmMCIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMjAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGFsaWdubWVudC1iYXNlbGluZT0ibWlkZGxlIiBmaWxsPSIjOTk5Ij5ObyBJbWFnZTwvdGV4dD48L3N2Zz4='"
+              :src="video.cover || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1zbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgZmlsbD0iI2YwZjBmMCIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMjAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGFsaWdubWVudC1iYXNlbGluZT0ibWlkZGxlIiBmaWxsPSIjOTk5Ij5ObyBJbWFnZTwvdGV4dD48L3N2Zz4='"
               :alt="video.title"
               @error="handleImageError"
             >
@@ -96,15 +77,26 @@
         </div>
       </div>
     </div>
+
+    <!-- Error Bar -->
+    <div v-if="errorMessage" class="error-bar">
+      <i class="pi pi-exclamation-triangle"></i>
+      <span>{{ errorMessage }}</span>
+      <button @click="clearError" class="close-error-btn">&times;</button>
+    </div>
   </div>
 </template>
 
 <script>
+import Navbar from '@/components/Navbar.vue';
 import Papa from 'papaparse';
 import 'primeicons/primeicons.css';
 
 export default {
   name: 'Home',
+  components: {
+    Navbar
+  },
   data() {
     return {
       selectedFile: null,
@@ -116,6 +108,7 @@ export default {
       selectedVideo: null,
       embedError: false,
       htmlContent: null,
+      errorMessage: null, // Holds the error message to display
     };
   },
   computed: {
@@ -385,7 +378,40 @@ export default {
 
     handleImageError(event) {
       event.target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1zbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgZmlsbD0iI2YwZjBmMCIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMjAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGFsaWdubWVudC1iYXNlbGluZT0ibWlkZGxlIiBmaWxsPSIjOTk5Ij5ObyBJbWFnZTwvdGV4dD48L3N2Zz4=';
-    }
+    },
+
+    triggerFileInput() {
+      // Programmatically click the hidden file input
+      this.$refs.fileInput.click();
+    },
+
+    importFile() {
+      if (!this.selectedFile) {
+        this.showError('No file selected. Please select a file to import.');
+        return;
+      }
+
+      try {
+        if (this.selectedFile.name.endsWith('.html')) {
+          this.importHTML();
+        } else if (this.selectedFile.name.endsWith('.csv')) {
+          this.importCSV();
+        } else {
+          this.showError('Unsupported file type. Please select a .csv or .html file.');
+        }
+      } catch (error) {
+        this.showError('An error occurred during the import process.');
+        console.error(error);
+      }
+    },
+
+    showError(message) {
+      this.errorMessage = message;
+    },
+
+    clearError() {
+      this.errorMessage = null;
+    },
   },
   mounted() {
     // Load any existing playlists from localStorage
@@ -399,6 +425,42 @@ export default {
 
 <style lang="scss">
 @use '../assets/styles/cyberpunk.scss' as *;
+
+.error-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background-color: #ff003c;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem;
+  font-size: 1rem;
+  z-index: 1000;
+  box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.2);
+
+  i {
+    margin-right: 0.5rem;
+    font-size: 1.5rem;
+  }
+
+  .close-error-btn {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 1.5rem;
+    cursor: pointer;
+    padding: 0;
+    margin-left: 1rem;
+    transition: transform 0.2s;
+
+    &:hover {
+      transform: scale(1.2);
+    }
+  }
+}
 
 .home {
   margin: 0 auto;
@@ -658,15 +720,6 @@ a:hover {
   display: flex;
   justify-content: space-between;
   margin-bottom: 20px;
-}
-
-.grid-controls {
-  display: flex;
-  align-items: center;
-}
-
-.grid-controls label {
-  margin-right: 10px;
 }
 
 .tag-filters {

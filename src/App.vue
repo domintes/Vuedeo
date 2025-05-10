@@ -1,15 +1,15 @@
 <template>
-  <div id="app">
-    <nav>
-      <router-link to="/">Home</router-link>
-    </nav>
-    <router-view></router-view>
-  </div>
+  <Layout />
 </template>
 
 <script>
+import Layout from './components/Layout.vue';
+
 export default {
   name: 'App',
+  components: {
+    Layout
+  }
 };
 </script>
 
